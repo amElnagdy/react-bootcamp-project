@@ -1,5 +1,4 @@
 import React from "react";
-
 import { Link } from "react-router-dom";
 
 const Header = (props) => (
@@ -7,6 +6,9 @@ const Header = (props) => (
     <ul className="container">
       <li key="home">
         <Link to="/">My Site</Link>
+      </li>
+      <li>
+        <Link to="new">New Post</Link>
       </li>
     </ul>
   </header>

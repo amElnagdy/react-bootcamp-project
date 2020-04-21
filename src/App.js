@@ -1,10 +1,11 @@
 import React from "react";
+import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
 import "./App.css";
 import Header from "./components/Header";
 import Posts from "./components/Posts";
 import Post from "./components/Post";
-import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
 import NotFound from "./components/NotFound";
+import PostForm from "./components/PostForm";
 
 class App extends React.Component {
   state = {
@@ -30,6 +31,16 @@ class App extends React.Component {
     ],
   };
 
+  addNewPost = (post) => {
+    post.id = this.state.posts.length + 1;
+    post.slug = encodeURIComponent(
+      post.title.toLowerCase().split(" ").join("-")
+    );
+    this.setState({
+      posts: [...this.state.posts, post],
+    });
+  };
+
   render() {
     return (
       <Router>
@@ -50,6 +61,11 @@ class App extends React.Component {
                 if (post) return <Post post={post} />;
                 else return <NotFound />;
               }}
+            />
+            <Route
+              exact
+              path="/new/"
+              render={() => <PostForm addNewPost={this.addNewPost} />}
             />
             <Route component={NotFound} />
           </Switch>
