@@ -73,6 +73,16 @@ class App extends React.Component {
     );
   };
 
+  deletePost = (post) => {
+    if (window.confirm("Delete this post?")) {
+      const posts = this.state.posts.filter((p) => p.id !== post.id);
+      this.setState({ posts, message: "deleted" });
+      setTimeout(() => {
+        this.setState({ message: null });
+      }, 1600);
+    }
+  };
+
   render() {
     return (
       <Router>
@@ -83,7 +93,9 @@ class App extends React.Component {
             <Route
               exact
               path="/"
-              render={() => <Posts posts={this.state.posts} />}
+              render={() => (
+                <Posts posts={this.state.posts} deletePost={this.deletePost} />
+              )}
             />
             <Route
               path="/post/:postSlug"
