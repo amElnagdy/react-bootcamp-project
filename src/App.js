@@ -27,10 +27,11 @@ class App extends React.Component {
     encodeURIComponent(title.toLowerCase().split(" ").join("-"));
 
   addNewPost = (post) => {
-    post.id = this.state.posts.length + 1;
+    const postsRef = firebase.database().ref("posts");
     post.slug = this.getNewSlugFromTitle(post.title);
+    delete post.key;
+    postsRef.push(post);
     this.setState({
-      posts: [...this.state.posts, post],
       message: "saved",
     });
 
@@ -40,28 +41,23 @@ class App extends React.Component {
   };
 
   updatePost = (post) => {
-    post.slug = this.getNewSlugFromTitle(post.title);
-    const index = this.state.posts.findIndex((p) => p.id === post.id);
-    const posts = this.state.posts
-      .slice(0, index)
-      .concat(this.state.posts.slice(index + 1));
-    const newPosts = [...posts, post].sort((a, b) => a.id - b.id);
-    this.setState(
-      {
-        posts: newPosts,
-        message: "updated",
-      },
-      setTimeout(() => {
-        this.setState({ message: null });
-      }),
-      1600
-    );
+    const postRef = firebase.database().ref("posts" + post.key);
+    postRef.update({
+      slug: this.getNewSlugFromTitle(post.title),
+      title: post.title,
+      content: post.content,
+    });
+    this.setState({ message: "updated" });
+    setTimeout(() => {
+      this.setState({ message: null });
+    });
   };
 
   deletePost = (post) => {
     if (window.confirm("Delete this post?")) {
-      const posts = this.state.posts.filter((p) => p.id !== post.id);
-      this.setState({ posts, message: "deleted" });
+      const postRef = firebase.database().ref("posts" / +post.key);
+      postRef.remove();
+      this.setState({ message: "deleted" });
       setTimeout(() => {
         this.setState({ message: null });
       }, 1600);
@@ -85,6 +81,23 @@ class App extends React.Component {
       .then(() => this.setState({ isAuthinticated: false }))
       .catch((error) => console.log(error));
   };
+
+  componentDidMount() {
+    const postsRef = firebase.database().ref("posts");
+    postsRef.on("value", (snapshot) => {
+      const posts = snapshot.val();
+      const newStatePosts = [];
+      for (let post in posts) {
+        newStatePosts.push({
+          key: post,
+          slug: posts[post].slug,
+          title: posts[post].title,
+          content: posts[post].content,
+        });
+      }
+      this.setState({ posts: newStatePosts });
+    });
+  }
 
   render() {
     return (
@@ -137,7 +150,7 @@ class App extends React.Component {
                   <PostForm
                     addNewPost={this.addNewPost}
                     post={{
-                      id: 0,
+                      key: null,
                       slug: "",
                       title: "",
                       content: "",
