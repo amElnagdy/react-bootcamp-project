@@ -5,6 +5,7 @@ import {
   Route,
   Redirect,
 } from "react-router-dom";
+import SimpleStorage from "react-simple-storage";
 import "./App.css";
 import Header from "./components/Header";
 import Posts from "./components/Posts";
@@ -12,30 +13,14 @@ import Post from "./components/Post";
 import NotFound from "./components/NotFound";
 import PostForm from "./components/PostForm";
 import Message from "./components/Message";
+import Login from "./components/Login";
+import firebase from "./firebase";
 
 class App extends React.Component {
   state = {
-    posts: [
-      {
-        id: 1,
-        slug: "hello-world",
-        title: "Hello World",
-        content: "Lorem.",
-      },
-      {
-        id: 2,
-        slug: "hello-project",
-        title: "Hello Project",
-        content: "Tothe",
-      },
-      {
-        id: 3,
-        slug: "hello-blog",
-        title: "Hello Blog",
-        content: "Ipsum.",
-      },
-    ],
+    posts: [],
     message: null,
+    isAuthinticated: false,
   };
 
   getNewSlugFromTitle = (title) =>
@@ -83,18 +68,44 @@ class App extends React.Component {
     }
   };
 
+  onLogin = (email, password) => {
+    firebase
+      .auth()
+      .signInWithEmailAndPassword(email, password)
+      .then((user) => {
+        this.setState({ isAuthinticated: true });
+      })
+      .catch((error) => console.error(error));
+  };
+
+  onLogout = () => {
+    firebase
+      .auth()
+      .signOut()
+      .then(() => this.setState({ isAuthinticated: false }))
+      .catch((error) => console.log(error));
+  };
+
   render() {
     return (
       <Router>
         <div className="App">
-          <Header />
+          <SimpleStorage parent={this} />
+          <Header
+            isAuthinticated={this.state.isAuthinticated}
+            onLogout={this.onLogout}
+          />
           {this.state.message && <Message type={this.state.message} />}
           <Switch>
             <Route
               exact
               path="/"
               render={() => (
-                <Posts posts={this.state.posts} deletePost={this.deletePost} />
+                <Posts
+                  posts={this.state.posts}
+                  deletePost={this.deletePost}
+                  isAuthinticated={this.state.isAuthinticated}
+                />
               )}
             />
             <Route
@@ -109,18 +120,33 @@ class App extends React.Component {
             />
             <Route
               exact
+              path="/login"
+              render={() =>
+                !this.state.isAuthinticated ? (
+                  <Login onLogin={this.onLogin} />
+                ) : (
+                  <Redirect to="/" />
+                )
+              }
+            />
+            <Route
+              exact
               path="/new/"
-              render={() => (
-                <PostForm
-                  addNewPost={this.addNewPost}
-                  post={{
-                    id: 0,
-                    slug: "",
-                    title: "",
-                    content: "",
-                  }}
-                />
-              )}
+              render={() =>
+                this.state.isAuthinticated ? (
+                  <PostForm
+                    addNewPost={this.addNewPost}
+                    post={{
+                      id: 0,
+                      slug: "",
+                      title: "",
+                      content: "",
+                    }}
+                  />
+                ) : (
+                  <Redirect to="/" />
+                )
+              }
             />
             <Route
               path="/edit/:postSlug"
@@ -128,9 +154,11 @@ class App extends React.Component {
                 const post = this.state.posts.find(
                   (post) => post.slug === props.match.params.postSlug
                 );
-                if (post)
+                if (post && this.state.isAuthinticated) {
                   return <PostForm post={post} updatePost={this.updatePost} />;
-                else return <Redirect to="/" />;
+                } else if (post && !this.state.isAuthinticated) {
+                  return <Redirect to="/" />;
+                } else return <Redirect to="/" />;
               }}
             />
             <Route component={NotFound} />
